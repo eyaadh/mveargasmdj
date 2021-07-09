@@ -33,7 +33,7 @@ async def main():
 
     while True:
         await asyncio.sleep(1)
-        if (time.time() - initiate_time) > (resp_merge_files['duration'] - 20):
+        if (time.time() - initiate_time) > (resp_merge_files['duration'] - 10):
             audio_download_path = await download_random_messages(1)
             master_loop = asyncio.get_event_loop()
             proc_merge_files = master_loop.run_in_executor(None, merge_files, audio_download_path)
