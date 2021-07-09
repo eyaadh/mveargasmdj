@@ -4,3 +4,4 @@ api_hash =
 [audio-master]
 audio_channel = -1001317576439
 voice_chat = -1001175411707
+number_of_tracks_to_download = 2
