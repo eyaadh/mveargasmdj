@@ -38,7 +38,7 @@ async def main():
     chat = await Audio_Master.send(functions.channels.GetFullChannel(channel=peer))
 
     await group_call.start(voice_chat)
-    logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=resp_merge_files['duration']))}")
+    logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=mix_duration))}")
 
     while True:
         await asyncio.sleep(5)
@@ -55,7 +55,7 @@ async def main():
             initiate_time = time.time()
             mix_duration = resp_new_merge_files['duration']
             
-            logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=resp_new_merge_files['duration']))}")
+            logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=mix_duration))}")
             group_call.input_filename = new_raw_file
 
             raw_file_path = Path(raw_file)
