@@ -29,6 +29,7 @@ async def main():
     resp_merge_files = await proc_merge_files
 
     initiate_time = time.time()
+    mix_duration = resp_merge_files['duration']
     raw_file = resp_merge_files['raw_file']
 
     group_call = pytgcalls.GroupCall(Audio_Master, raw_file)
@@ -41,7 +42,7 @@ async def main():
 
     while True:
         await asyncio.sleep(5)
-        if (time.time() - initiate_time) > (resp_merge_files['duration'] - 5):
+        if (time.time() - initiate_time) > (mix_duration - 5):
             audio_download_proc = await download_random_messages(number_of_tracks_to_download)
             audio_download_path = audio_download_proc['directory']
             audio_titles = audio_download_proc['titles']
@@ -52,6 +53,7 @@ async def main():
             
             new_raw_file = resp_new_merge_files['raw_file']
             initiate_time = time.time()
+            mix_duration = resp_new_merge_files['duration']
             
             logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=resp_new_merge_files['duration']))}")
             group_call.input_filename = new_raw_file
