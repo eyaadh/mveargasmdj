@@ -53,7 +53,6 @@ async def main():
             new_raw_file = resp_new_merge_files['raw_file']
             initiate_time = time.time()
             
-            await asyncio.sleep(10)
             logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=resp_new_merge_files['duration']))}")
             group_call.input_filename = new_raw_file
 
