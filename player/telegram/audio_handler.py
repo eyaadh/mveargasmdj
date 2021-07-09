@@ -1,11 +1,12 @@
 import os
+import re
 import logging
 import secrets
 from random import randrange
 from player.telegram import Audio_Master, audio_channel
 
 
-async def download_random_messages(count: int = 2) -> str:
+async def download_random_messages(count: int = 2) -> dict:
     """
     :what it does:
         1. get history count
@@ -18,7 +19,8 @@ async def download_random_messages(count: int = 2) -> str:
         count: 
             int expected, defaults to 2, this is basically the number of messages that the function will try download.
     :return:
-        the path at which the files were downloaded is returned as a string.
+        a dict with the path at which the files were downloaded and the titles of the files downloaded.
+        we also remove the special charectors from the titles list that is returned
     """
     history_count = await Audio_Master.get_history_count(audio_channel)
     random_msg_id = randrange(count, history_count)
@@ -30,7 +32,8 @@ async def download_random_messages(count: int = 2) -> str:
     logging.info(f"Creating the temporary directory {new_folder}")
     if not os.path.exists(new_folder):
         os.mkdir(new_folder)
-    
+
+    titles = []
     while msg_counter_start != msg_counter_end:
         msg_counter_start = msg_counter_start + 1
         try:
@@ -39,6 +42,7 @@ async def download_random_messages(count: int = 2) -> str:
                 if msg.audio:
                     if msg.audio.file_name.endswith('.mp3'):
                         logging.info(f"Downloading the file from message {msg.message_id} - audio file: {msg.audio.file_name}")
+                        titles.append(msg.audio.title)
                         await msg.download(file_name=f"{new_folder.replace('player/', '')}/{secrets.token_hex(2)}.mp3")
                         break
                     else:
@@ -51,4 +55,6 @@ async def download_random_messages(count: int = 2) -> str:
 
     logging.info("Finished with downloading process!")
 
-    return new_folder
+    titles = [re.sub(r"[^a-zA-Z0-9]+", ' ', _) for _ in titles]
+
+    return {'directory': new_folder, 'titles': titles}

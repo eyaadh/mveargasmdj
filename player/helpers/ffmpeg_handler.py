@@ -18,7 +18,7 @@ def merge_files(path: str) -> dict:
         path: 
             path to which audio files were downloaded, expects a string value
     :return:
-        abspath to the raw file and its duration in a dict
+        a dict with abspath to the raw file and its duration
     """
     playlist = f"{path}/playlist.txt"
     for fn in next(os.walk(path))[2]:
