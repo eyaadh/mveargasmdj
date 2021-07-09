@@ -18,7 +18,7 @@ async def main():
     while not Audio_Master.is_connected:
         await asyncio.sleep(1)
 
-    audio_download_path = await download_random_messages(1)
+    audio_download_path = await download_random_messages(2)
 
     master_loop = asyncio.get_event_loop()
     proc_merge_files = master_loop.run_in_executor(None, merge_files, audio_download_path)
@@ -33,8 +33,8 @@ async def main():
 
     while True:
         await asyncio.sleep(1)
-        if (time.time() - initiate_time) > (resp_merge_files['duration'] - 10):
-            audio_download_path = await download_random_messages(1)
+        if (time.time() - initiate_time) > (resp_merge_files['duration'] - 5):
+            audio_download_path = await download_random_messages(2)
             master_loop = asyncio.get_event_loop()
             proc_merge_files = master_loop.run_in_executor(None, merge_files, audio_download_path)
             resp_new_merge_files = await proc_merge_files
