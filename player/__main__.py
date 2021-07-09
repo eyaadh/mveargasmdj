@@ -10,7 +10,7 @@ from player.telegram import Audio_Master, voice_chat
 from player.helpers.ffmpeg_handler import merge_files
 from player.telegram.audio_handler import download_random_messages
 
-raw_file_path = ""
+raw_file_path = None
 
 async def main():
     global raw_file_path
@@ -60,8 +60,9 @@ if __name__ == "__main__":
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
     except KeyboardInterrupt as e:
-        if raw_file_path != "":
+        loop.stop()
+    finally:
+        if raw_file_path:
             logging.info("Removing temporary files and closing the loop!")
             if raw_file_path.exists():
                 shutil.rmtree(raw_file_path.parent)
-        loop.stop()
