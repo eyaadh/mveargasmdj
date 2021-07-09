@@ -40,7 +40,7 @@ async def main():
     logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=resp_merge_files['duration']))}")
 
     while True:
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
         if (time.time() - initiate_time) > (resp_merge_files['duration'] - 5):
             audio_download_proc = await download_random_messages(number_of_tracks_to_download)
             audio_download_path = audio_download_proc['directory']
@@ -63,15 +63,12 @@ async def main():
 
             raw_file = new_raw_file
         else:
-            while True:
-                await Audio_Master.send(
-                    functions.phone.EditGroupCallTitle(
-                        call = chat.full_chat.call,
-                        title = f"Mix has: 🎙️{random.choice(audio_titles)}"
-                    )
+            await Audio_Master.send(
+                functions.phone.EditGroupCallTitle(
+                    call = chat.full_chat.call,
+                    title = f"Mix has: 🎙️{random.choice(audio_titles)}"
                 )
-
-                await asyncio.sleep(5)
+            )
 
     
     await idle()
