@@ -13,3 +13,5 @@ app_config.read("player/working_dir/config.ini")
 audio_channel = int(app_config.get("audio-master", "audio_channel"))
 voice_chat = int(app_config.get("audio-master", "voice_chat"))
 number_of_tracks_to_download = int(app_config.get("audio-master", "number_of_tracks_to_download"))
+
+raw_file_path = None
