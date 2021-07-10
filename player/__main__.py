@@ -22,7 +22,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt as e:
         loop.stop()
     finally:
-        print(player.telegram.raw_file_path)
         if player.telegram.raw_file_path:
             logging.info("Removing temporary files and closing the loop!")
             if player.telegram.raw_file_path.exists():
