@@ -42,6 +42,7 @@ async def download_random_messages(count: int = 2) -> dict:
             while True:
                 if (not msg.audio) and (not msg.audio.file_name.endswith('.mp3')):
                     msg = await Audio_Master.get_messages(audio_channel, msg_counter_start + 1)
+                else:
                     break
 
             logging.info(f"Downloading the file from message {msg.message_id} - audio file: {msg.audio.file_name}")
