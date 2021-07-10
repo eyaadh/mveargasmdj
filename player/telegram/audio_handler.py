@@ -7,6 +7,7 @@ import secrets
 import asyncio
 import logging
 import datetime
+from pyrogram.types.messages_and_media import message
 import pytgcalls
 import player.telegram
 from pathlib import Path
@@ -51,8 +52,11 @@ async def download_random_messages(count: int = 2) -> dict:
             msg = await player.telegram.Audio_Master.get_messages(player.telegram.audio_channel, msg_counter_start)
             
             while True:
-                if (not msg.audio) and (not msg.audio.file_name.endswith('.mp3')):
-                    msg = await player.telegram.Audio_Master.get_messages(player.telegram.audio_channel, msg_counter_start + 1)
+                if (not msg.audio) or (not msg.audio.file_name.endswith('.mp3')):
+                    msg = await player.telegram.Audio_Master.get_messages(
+                            player.telegram.audio_channel, 
+                            msg_counter_start + 1 if msg_counter_start < history_count else msg_counter_start - 1
+                        )
                 else:
                     break
 
@@ -146,8 +150,11 @@ async def start_player():
             group_call.input_filename = new_raw_file
 
             player.telegram.raw_file_path = Path(raw_file)
-            if raw_file_path.exists():
-                shutil.rmtree(raw_file_path.parent)
+            try:
+                if raw_file_path.exists():
+                    shutil.rmtree(raw_file_path.parent)
+            except Exception as e:
+                logging.error(e)
 
             raw_file = new_raw_file
         else:
