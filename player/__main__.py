@@ -1,6 +1,7 @@
 import time
 import shutil
 import random
+import secrets
 import logging
 import asyncio
 import datetime
@@ -37,6 +38,16 @@ async def main():
     peer = await Audio_Master.resolve_peer(voice_chat)
     chat = await Audio_Master.send(functions.channels.GetFullChannel(channel=peer))
 
+
+    if not chat.full_chat.call:
+        await Audio_Master.send(
+            functions.phone.CreateGroupCall(
+                peer=peer,
+                random_id=random.randint(0,10)
+            )
+        )
+        chat = await Audio_Master.send(functions.channels.GetFullChannel(channel=peer))
+
     await group_call.start(voice_chat)
     logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=mix_duration))}")
 
@@ -64,12 +75,14 @@ async def main():
 
             raw_file = new_raw_file
         else:
+            audio_title = random.choice(audio_titles)
             await Audio_Master.send(
                 functions.phone.EditGroupCallTitle(
                     call = chat.full_chat.call,
-                    title = f"Mix has: 🎙️{random.choice(audio_titles)}"
+                    title = f"Mix has: 🎙️{audio_title if audio_title else secrets.token_hex(2)}"
                 )
             )
+
 
     
     await idle()
