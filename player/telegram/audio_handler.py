@@ -51,14 +51,12 @@ async def download_random_messages(count: int = 2) -> dict:
         try:
             msg = await player.telegram.Audio_Master.get_messages(player.telegram.audio_channel, msg_counter_start)
             
-            while True:
-                if (not msg.audio) or (not msg.audio.file_name.endswith('.mp3')):
-                    msg = await player.telegram.Audio_Master.get_messages(
-                            player.telegram.audio_channel, 
-                            msg_counter_start + 1 if msg_counter_start < history_count else msg_counter_start - 1
-                        )
-                else:
-                    break
+            while (not msg.audio) or (not msg.audio.file_name.endswith('.mp3')):
+                msg = await player.telegram.Audio_Master.get_messages(
+                        player.telegram.audio_channel, 
+                        msg_counter_start + 1 if msg_counter_start < history_count else msg_counter_start - 1
+                    )
+  
 
             logging.info(f"Downloading the file from message {msg.message_id} - audio file: {msg.audio.file_name}")
             titles.append(msg.audio.title)
