@@ -59,8 +59,6 @@ async def download_random_messages(count: int = 2) -> dict:
         titles = [re.sub(r"[^a-zA-Z0-9]+", ' ', _) for _ in titles]
     except Exception as e:
         logging.error(e)
-        titles = []
-        for i in range(0,count):
-            titles.append(secrets.token_hex(2))
+        titles = [secrets.token_hex(2) for _ in range(0, count)]
 
     return {'directory': new_folder, 'titles': titles}
