@@ -8,3 +8,4 @@ venv2/
 *.json
 */__pycache__/
 /auditor/working_dir/tmp/
+*.code-workspace
