@@ -1,165 +1,176 @@
 import os
 import re
-import time
 import random
 import shutil
 import secrets
 import asyncio
 import logging
 import datetime
-from pyrogram.types.messages_and_media import message
 import pytgcalls
 import player.telegram
 from pathlib import Path
 from random import randrange
 from pyrogram.raw import functions
-from player.helpers.ffmpeg_handler import merge_files
+from player.helpers.ffmpeg_handler import convert_audio_to_raw
 
-raw_file_path = None
+group_call = pytgcalls.GroupCall(None, path_to_log_file='')
 
 
-async def download_random_messages(count: int = 2) -> dict:
+async def download_random_message() -> dict:
     """
     :what it does:
-        1. get history count
-        2. chose a random message based on the count
-        3. create a start and an end point for the counter based on the arge count 
-        4. create a new directory for the files to be downloaded
-        5. try downloading the audio of the messages based on the counter that was decided at pt.3
-        6. if the message doesn't contain an audio increase the msg_id thats being checked to download and try downloading once again
-    :param: 
-        count: 
-            int expected, defaults to 2, this is basically the number of messages that the function will try download.
+        1. get the history count of the intended chat and select a random message id
+        2. get the associated message for the selected random message id at step.1
+        3. until the selected message contains an audio file or the audio file doesn't have the extension mp3 
+            get a different message by either increasing the random message id by one or decreasing it by one
+        4. create a temp directory and download the audio file in the message selected to this directory
     :return:
-        a dict with the path at which the files were downloaded and the titles of the files downloaded.
-        we also remove the special charectors from the titles list that is returned
+        a dict with the keys:
+            audio_file: the mp3 file that was downloaded
+            title: the title of the mp3 file (special charectors are removed from the tile)
+            duration: of the mp3 file
     """
     history_count = await player.telegram.Audio_Master.get_history_count(player.telegram.audio_channel)
-    random_msg_id = randrange(count, history_count)
-    msg_counter_start = random_msg_id if (random_msg_id > count) else (random_msg_id+count)
-    msg_counter_end = msg_counter_start + count
+    random_msg_id = randrange(1, history_count)
 
-    logging.info(f"Randomly downloading the next {count} messages starting from {msg_counter_start}")
-    new_folder = f"player/working_dir/{secrets.token_hex(2)}"
-    logging.info(f"Creating the temporary directory {new_folder}")
-    if not os.path.exists(new_folder):
-        os.mkdir(new_folder)
 
-    titles = []
-    while msg_counter_start != msg_counter_end:
-        msg_counter_start = msg_counter_start + 1
-        try:
-            msg = await player.telegram.Audio_Master.get_messages(player.telegram.audio_channel, msg_counter_start)
-            
-            while (not msg.audio) or (not msg.audio.file_name.endswith('.mp3')):
-                msg = await player.telegram.Audio_Master.get_messages(
-                        player.telegram.audio_channel, 
-                        msg_counter_start + 1 if msg_counter_start < history_count else msg_counter_start - 1
-                    )
-  
+    msg = await player.telegram.Audio_Master.get_messages(player.telegram.audio_channel, random_msg_id)
 
-            logging.info(f"Downloading the file from message {msg.message_id} - audio file: {msg.audio.file_name}")
-            titles.append(msg.audio.title)
-            await msg.download(file_name=f"{new_folder.replace('player/', '')}/{secrets.token_hex(2)}.mp3")
+    while (not msg.audio) or (not msg.audio.file_name.endswith('.mp3')):
+        await asyncio.sleep(3)
+        msg = await player.telegram.Audio_Master.get_messages(
+                chat_id=player.telegram.audio_channel, 
+                message_ids=random_msg_id - 1 if random_msg_id >= history_count else random_msg_id + 1
+            )
+    
+    logging.info(f"About to start downloading the song: {msg.audio.title} from message: {msg.message_id}")
+    new_directory = f"player/working_dir/{secrets.token_hex(2)}"
+    audio_file = f"{new_directory}/{secrets.token_hex(2)}.mp3"
+    logging.info(f"Creating the temporary directory {new_directory} to save the audio file")
 
-        except Exception as e:
-            logging.error(e)
+    if not os.path.exists(new_directory):
+        os.mkdir(new_directory)
 
-    logging.info("Finished with downloading process!")
+    logging.info(f"Downloading the file: {msg.audio.file_name} from message: {msg.message_id} to {new_directory}")
+    await msg.download(file_name=audio_file.replace('player/', ''))
+    logging.info(f"Finished with Downloading process!")
 
     try:
-        titles = [re.sub(r"[^a-zA-Z0-9]+", ' ', _) for _ in titles]
+        title = re.sub(r"[^a-zA-Z0-9]+", ' ', msg.audio.title)
     except Exception as e:
-        logging.error(e)
-        titles = [secrets.token_hex(2) for _ in range(0, count)]
+        title = secrets.token_hex(2)
 
-    return {'directory': new_folder, 'titles': titles}
+    return {'audio_file': audio_file, 'title': title, 'duration': msg.audio.duration if msg.audio.duration else 1}
 
 
 async def start_player():
     """
     :what it does:
-        1. call download_random_messages(*args) to download the desired audio files
-        2. on a executor run the merge files operation by calling the function merge_files(*args) 
-            from player.helpers with the path from the dict that was returned at step.1
-        3. check if there is already a voice call if not start a group voice chat
-        4. start playing the raw file from step. 2 within the call
-        5. start an indefenite loop within which:
-            a. check if the time passed since step 4. is less than the duration of the 
-                raw file mentioned at step 4, here duration we get from the dict returned from
-                the step 2.
-            b. if the time passed is less then update the voice chat title with a random item from 
-                titles list from dict returned at step 1
-            c. otherwise:
-                i. repeat the steps 1-2
-                ii. update the variables initate_time and mix_duration with the relavent data that is 
-                    returend from performing step 5.c.ii
-                iii. remove the old raw_file and its directory as its not needed any more
-                iv. asign the variable raw_file with the new file
+        1. check if the chat has a voice chat already started, if not keep trying 
+            until a voice chat can be started
+        2. prepare and get the audio file for the initial song by calling the 
+            function prepare_audio_files()
+        3. start playing the audio file within the voice chat/call
+        4. update the title of the voice chat with the title of audio file that we got 
+            at step.2, by calling the function change_voice_chat_title(*args)
+        5. add change_player_song() as a handler to group call, to trigger at playout_end action 
     """
-
-    audio_download_proc = await download_random_messages(player.telegram.number_of_tracks_to_download)
-    audio_download_path = audio_download_proc['directory']
-    audio_titles = audio_download_proc['titles']
-
-    master_loop = asyncio.get_event_loop()
-    proc_merge_files = master_loop.run_in_executor(None, merge_files, audio_download_path)
-    resp_merge_files = await proc_merge_files
-
-    initiate_time = time.time()
-    mix_duration = resp_merge_files['duration']
-    raw_file = resp_merge_files['raw_file']
-    player.telegram.raw_file_path = Path(raw_file)
-
-    group_call = pytgcalls.GroupCall(player.telegram.Audio_Master, raw_file)
-    
     peer = await player.telegram.Audio_Master.resolve_peer(player.telegram.voice_chat)
     chat = await player.telegram.Audio_Master.send(functions.channels.GetFullChannel(channel=peer))
-
-
-    if not chat.full_chat.call:
+    voice_chat_details = await player.telegram.Audio_Master.get_chat(player.telegram.voice_chat)
+    
+    while not chat.full_chat.call:
+        await asyncio.sleep(3)
+        logging.info(f"Trying to starting a group voice chat at {voice_chat_details.title} call since there isn't")
         await player.telegram.Audio_Master.send(
             functions.phone.CreateGroupCall(
                 peer=peer,
-                random_id=random.randint(0,10)
+                random_id=random.randint(1,99)
             )
         )
+
         chat = await player.telegram.Audio_Master.send(functions.channels.GetFullChannel(channel=peer))
 
+    audio_file_details = await prepare_audio_files()
+
+    group_call = pytgcalls.GroupCall(player.telegram.Audio_Master, audio_file_details['audio_file'])
+
     await group_call.start(player.telegram.voice_chat)
-    logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=mix_duration))}")
+    await change_voice_chat_title(audio_file_details['title'])
+    logging.info(
+        f"Playing {audio_file_details['title']} of duration {str(datetime.timedelta(seconds=audio_file_details['duration']))}"
+    )
 
-    while True:
-        await asyncio.sleep(5)
-        if (time.time() - initiate_time) > (mix_duration - 5):
-            audio_download_proc = await download_random_messages(player.telegram.number_of_tracks_to_download)
-            audio_download_path = audio_download_proc['directory']
-            audio_titles = audio_download_proc['titles']
+    group_call.add_handler(
+        change_player_song,
+        pytgcalls.GroupCallAction.PLAYOUT_ENDED
+    )
 
-            master_loop = asyncio.get_event_loop()
-            proc_merge_files = master_loop.run_in_executor(None, merge_files, audio_download_path)
-            resp_new_merge_files = await proc_merge_files
-            
-            new_raw_file = resp_new_merge_files['raw_file']
-            initiate_time = time.time()
-            mix_duration = resp_new_merge_files['duration']
-            
-            logging.info(f"Playing mix of duration {str(datetime.timedelta(seconds=mix_duration))}")
-            group_call.input_filename = new_raw_file
 
-            player.telegram.raw_file_path = Path(raw_file)
-            try:
-                if raw_file_path.exists():
-                    shutil.rmtree(raw_file_path.parent)
-            except Exception as e:
-                logging.error(e)
+async def prepare_audio_files():
+    """
+    :what it does:
+        1. download a mp3 file from a random message by calling the function download_random_message()
+        2. convert the downloaded mp3 file to a raw file by calling the function 
+            convert_audio_to_raw(*args) from player.helpers.ffmpeg_handler
+    :returns:
+        a dict with the keys:
+            audio_file: raw file that was generated
+            title: title of the audio file that was downloaded
+            duration: duration of the audio file in seconds
+    """
+    audio_download_proc = await download_random_message()
+    audio_file = audio_download_proc['audio_file']
 
-            raw_file = new_raw_file
-        else:
-            audio_title = random.choice(audio_titles)
-            await player.telegram.Audio_Master.send(
-                functions.phone.EditGroupCallTitle(
-                    call = chat.full_chat.call,
-                    title = f"Mix has: 🎙️{audio_title if audio_title else secrets.token_hex(2)}"
-                )
-            )
+    converted_audio_file = await convert_audio_to_raw(audio_file)
+
+    raw_file = converted_audio_file['raw_file']
+    player.telegram.raw_file_path = Path(raw_file)
+
+    return {'audio_file': raw_file, 'title': audio_download_proc['title'], 'duration': audio_download_proc['duration']}
+
+
+async def change_player_song(group_call, raw_file):
+    """
+    :what it does:
+        1. prepare a new audio file to be played at the voice chat by 
+            calling prepare_audio_files()
+        2. change the current playing audio file with the new file that we got at step.1
+        3. update the title of the voice chat with the title of the audio file that we got 
+            from the dict at step.1
+        4. remove the old raw audio file from disk as it is not required anymore
+    """
+    audio_file_details = await prepare_audio_files()
+    group_call.input_filename = audio_file_details['audio_file']
+    await change_voice_chat_title(audio_file_details['title'])
+    logging.info(
+        f"Playing {audio_file_details['title']} of duration {str(datetime.timedelta(seconds=audio_file_details['duration']))}"
+    )
+
+    old_raw_file_path = Path(raw_file)
+    try:
+        if old_raw_file_path.exists():
+            logging.info(f"Removing old raw file {raw_file}")
+            shutil.rmtree(old_raw_file_path.parent)
+    except Exception as e:
+        logging.error(e)
+
+
+async def change_voice_chat_title(title: str):
+    """
+    :what it does:
+        this function basically updates the title of the voice chat with the value of argument 
+        title that was provided
+    :params:
+        title: String value expected
+            this is the title of the file that is being played at the voice chat
+    """
+    peer = await player.telegram.Audio_Master.resolve_peer(player.telegram.voice_chat)
+    chat = await player.telegram.Audio_Master.send(functions.channels.GetFullChannel(channel=peer))
+
+    await player.telegram.Audio_Master.send(
+        functions.phone.EditGroupCallTitle(
+            call = chat.full_chat.call,
+            title = f"Playing: 🎙️ {title if title else secrets.token_hex(2)}"
+        )
+    )
