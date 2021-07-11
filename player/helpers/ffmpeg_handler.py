@@ -1,49 +1,60 @@
 import os
 import shutil
+import logging
 import secrets
-import subprocess
+import asyncio
+from pathlib import Path
 
 
-def merge_files(path: str) -> dict:
+async def convert_audio_to_raw(audio_file: str) -> dict:
     """
     :what it does:
-        1. create a playlist file for ffmpeg with the details of the files in the path given
-        2. create a new directory for ffmpeg mix to be saved
-        3. merge all the files in the given "path" and export/save the output to the directory created at pt.2
-        4. convert the saved output file on pt.3 to a raw file
-        5. get the duration of the file saved on pt.3
-        6. remove the directory mentioned on pt.1 and its content since its no more needed
-        7. remove the file mentioned on pt.3 as its no more needed 
-    :param: 
-        path: 
-            path to which audio files were downloaded, expects a string value
+        1. create a temporary directory to save the output of the converted raw file
+        2. run ffmpeg externally to convert given mp3 audio_file to a raw file:
+            Note: since ffmpeg is run externally we took the abspath of the audio file at the very
+                beginning of the function
+        3. remove the given audio file and its directory since it is not needed any more
+    :params:
+        audio_file: a string value expected
+            path of the mp3 audio file that requires to be converted to a raw file
     :return:
-        a dict with abspath to the raw file and its duration
+        a dict with the key 'raw_file' for the path of the raw file that was generated.
     """
-    playlist = f"{path}/playlist.txt"
-    for fn in next(os.walk(path))[2]:
-        playlist_file = open(playlist, "a")
-        playlist_file.write("file '" + os.path.abspath(os.path.join(path, fn)) + "'\n")
-        playlist_file.close()
+    audio_file_abspath = os.path.abspath(audio_file)
 
-    new_mix_path = f"player/working_dir/{secrets.token_hex(2)}"
-    if not os.path.exists(new_mix_path):
-        os.mkdir(new_mix_path)
+    audio_covertion_directory = f"player/working_dir/{secrets.token_hex(2)}"
+    logging.info(f"Creating temp directory {audio_covertion_directory} for audio converting process")
+    if not os.path.exists(audio_covertion_directory):
+        os.mkdir(audio_covertion_directory)
 
-    new_mix = os.path.abspath(os.path.join(new_mix_path, "output.mp3"))
-    mix_cmd = f"ffmpeg -v quiet -f concat -safe 0 -i {os.path.abspath(playlist)} -c copy {new_mix}"
-    os.system(mix_cmd)
+    raw_file = os.path.join(audio_covertion_directory, f"{secrets.token_hex(2)}.raw")
+    logging.info(f"Converting {audio_file} to raw: {raw_file}")
 
-    convert_raw_cmd = f"ffmpeg -v quiet -i {new_mix} -f s16le -ac 2 -ar 48000 -acodec pcm_s16le {new_mix.replace('.mp3', '.raw')}"
-    os.system(convert_raw_cmd)
+    process_cmd = [
+        "ffmpeg", 
+        "-v", 
+        "quiet", 
+        '-i', 
+        audio_file_abspath, 
+        "-f", 
+        "s16le", 
+        "-ac", 
+        "2", 
+        "-ar", 
+        "48000", 
+        "-acodec",
+        "pcm_s16le", 
+        raw_file
+    ]
 
-    get_duration_cmd = f"ffprobe -v quiet -of csv=p=0 -show_entries format=duration {new_mix}"
-    duration = subprocess.check_output(get_duration_cmd, shell=True)
+    process = await asyncio.create_subprocess_exec(*process_cmd, stdout=asyncio.subprocess.PIPE,
+                                                       stderr=asyncio.subprocess.PIPE)
+    
+    _, _ = await process.communicate()
 
-    if os.path.exists(path):
-        shutil.rmtree(path)
+    audio_file_path = Path(audio_file)
+    if os.path.exists(audio_file):
+        logging.info(f"Finished converting and Removing {audio_file}")
+        shutil.rmtree(audio_file_path.parent)
 
-    if os.path.exists(new_mix):
-        os.remove(new_mix)
-
-    return {'raw_file': new_mix.replace('.mp3', '.raw'), 'duration': float(duration.decode("utf-8").replace('\n', ''))}
+    return {'raw_file': raw_file}
