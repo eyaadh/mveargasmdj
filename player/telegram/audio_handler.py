@@ -32,31 +32,34 @@ async def download_random_message() -> dict:
             title: the title of the mp3 file (special charectors are removed from the tile)
             duration: of the mp3 file
     """
-    history_count = await player.telegram.Audio_Master.get_history_count(player.telegram.audio_channel)
-    random_msg_id = randrange(1, history_count)
+    try:
+        history_count = await player.telegram.Audio_Master.get_history_count(player.telegram.audio_channel)
+        random_msg_id = randrange(1, history_count)
 
 
-    msg = await player.telegram.Audio_Master.get_messages(player.telegram.audio_channel, random_msg_id)
+        msg = await player.telegram.Audio_Master.get_messages(player.telegram.audio_channel, random_msg_id)
 
-    while (not msg.audio) or (not msg.audio.file_name.endswith('.mp3')):
-        await asyncio.sleep(3)
-        msg = await player.telegram.Audio_Master.get_messages(
-                chat_id=player.telegram.audio_channel, 
-                message_ids=random_msg_id - 1 if random_msg_id >= history_count else random_msg_id + 1
-            )
-    
-    logging.info(f"About to start downloading the song: {msg.audio.title} from message: {msg.message_id}")
-    new_directory = f"player/working_dir/{secrets.token_hex(2)}"
-    audio_file = f"{new_directory}/{secrets.token_hex(2)}.mp3"
-    logging.info(f"Creating the temporary directory {new_directory} to save the audio file")
+        while (not msg.audio) or (not msg.audio.file_name.endswith('.mp3')):
+            await asyncio.sleep(3)
+            msg = await player.telegram.Audio_Master.get_messages(
+                    chat_id=player.telegram.audio_channel, 
+                    message_ids=random_msg_id - 1 if random_msg_id >= history_count else random_msg_id + 1
+                )
+        
+        logging.info(f"About to start downloading the song: {msg.audio.title} from message: {msg.message_id}")
+        new_directory = f"player/working_dir/{secrets.token_hex(2)}"
+        audio_file = f"{new_directory}/{secrets.token_hex(2)}.mp3"
+        logging.info(f"Creating the temporary directory {new_directory} to save the audio file")
 
-    if not os.path.exists(new_directory):
-        os.mkdir(new_directory)
+        if not os.path.exists(new_directory):
+            os.mkdir(new_directory)
 
-    logging.info(f"Downloading the file: {msg.audio.file_name} from message: {msg.message_id} to {new_directory}")
-    await msg.download(file_name=audio_file.replace('player/', ''))
-    logging.info(f"Finished with Downloading process!")
-
+        logging.info(f"Downloading the file: {msg.audio.file_name} from message: {msg.message_id} to {new_directory}")
+        await msg.download(file_name=audio_file.replace('player/', ''))
+        logging.info(f"Finished with Downloading process!")
+    except Exception as e:
+        logging.error(e)
+        raise
     try:
         title = re.sub(r"[^a-zA-Z0-9]+", ' ', msg.audio.title)
     except Exception as e:
