@@ -11,11 +11,13 @@ import player.telegram
 from pathlib import Path
 from random import randrange
 from pyrogram.raw import functions
+from player.helpers.retry_deco import retry
 from player.helpers.ffmpeg_handler import convert_audio_to_raw
 
 group_call = pytgcalls.GroupCall(None, path_to_log_file='')
 
 
+@retry(Exception, tries=4)
 async def download_random_message() -> dict:
     """
     :what it does:
