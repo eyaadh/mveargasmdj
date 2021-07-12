@@ -3,10 +3,10 @@ This is my submission for the Telegram Radio Project of Baivaru. Which required 
 
 ## Available Commands to Control the Playlist:
 Only members with access to amend/change voice chat options are allowed to use the following commands.
-    1. **!vnext** - skips the current playing song and play a new one.
-    2. **!vpause** - pause the current playing song.
-    3. **!resume** - resume a paused song.
-    4. **!restart** - restart the current playing song.
+1. **!vnext** - skips the current playing song and play a new one.
+2. **!vpause** - pause the current playing song.
+3. **!resume** - resume a paused song.
+4. **!restart** - restart the current playing song.
 
 ## Cloning and Run:
 1. `git clone https://github.com/eyaadh/mveargasmdj.git`, to clone the repository.
