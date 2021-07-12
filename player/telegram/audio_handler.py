@@ -93,7 +93,11 @@ async def start_player():
 
     audio_file_details = await prepare_audio_files()
 
-    group_call = pytgcalls.GroupCall(player.telegram.Audio_Master, audio_file_details['audio_file'])
+    group_call = pytgcalls.GroupCall(
+        client=player.telegram.Audio_Master, 
+        input_filename=audio_file_details['audio_file'],
+        play_on_repeat=False
+    )
 
     await group_call.start(player.telegram.voice_chat)
     await change_voice_chat_title(audio_file_details['title'])
