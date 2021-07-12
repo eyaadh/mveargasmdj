@@ -17,7 +17,7 @@ vc_admins_filter = filters.create(vc_admins_filter_func)
 
 @Client.on_message(vc_admins_filter & 
     filters.command("vnext", prefixes="!") & filters.chat(player.telegram.voice_chat))
-async def next_song_filter(_, m: Message):
+async def next_song_handler(_, m: Message):
     """
     :what it does:
         this filter is used to skip the current song and play a new one.
@@ -47,7 +47,7 @@ async def next_song_filter(_, m: Message):
 
 @Client.on_message(vc_admins_filter & 
     filters.command("vpause", prefixes="!") & filters.chat(player.telegram.voice_chat))
-async def pause_song_filter(_, m: Message):
+async def pause_song_handler(_, m: Message):
     """
     :what it does:
         this filter is used to pause the current playing song.
@@ -62,7 +62,7 @@ async def pause_song_filter(_, m: Message):
 
 @Client.on_message(vc_admins_filter & 
     filters.command("vresume", prefixes="!") & filters.chat(player.telegram.voice_chat))
-async def resume_song_filter(_, m: Message):
+async def resume_song_handler(_, m: Message):
     """
     :what it does:
         this filter is used to resume a paused song.
@@ -77,7 +77,7 @@ async def resume_song_filter(_, m: Message):
 
 @Client.on_message(vc_admins_filter &
     filters.command("vrestart", prefixes="!") & filters.chat(player.telegram.voice_chat))
-async def restart_song_filter(_, m: Message):
+async def restart_song_handler(_, m: Message):
     """
     :what it does:
         this filter is used to restart the current playing song.
