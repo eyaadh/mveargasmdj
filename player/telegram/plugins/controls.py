@@ -18,6 +18,10 @@ vc_admins_filter = filters.create(vc_admins_filter_func)
 @Client.on_message(vc_admins_filter & 
     filters.command("vnext", prefixes="!") & filters.chat(player.telegram.voice_chat))
 async def next_song_filter(_, m: Message):
+    """
+    :what it does:
+        this filter is used to skip the current song and play a new one.
+    """
     group_call = player.telegram.group_call
     raw_file = group_call.input_filename
 
@@ -44,6 +48,10 @@ async def next_song_filter(_, m: Message):
 @Client.on_message(vc_admins_filter & 
     filters.command("vpause", prefixes="!") & filters.chat(player.telegram.voice_chat))
 async def pause_song_filter(_, m: Message):
+    """
+    :what it does:
+        this filter is used to pause the current playing song.
+    """
     group_call = player.telegram.group_call
 
     await m.delete()
@@ -55,6 +63,10 @@ async def pause_song_filter(_, m: Message):
 @Client.on_message(vc_admins_filter & 
     filters.command("vresume", prefixes="!") & filters.chat(player.telegram.voice_chat))
 async def resume_song_filter(_, m: Message):
+    """
+    :what it does:
+        this filter is used to resume a paused song.
+    """
     group_call = player.telegram.group_call
 
     await m.delete()
@@ -66,6 +78,10 @@ async def resume_song_filter(_, m: Message):
 @Client.on_message(vc_admins_filter &
     filters.command("vrestart", prefixes="!") & filters.chat(player.telegram.voice_chat))
 async def restart_song_filter(_, m: Message):
+    """
+    :what it does:
+        this filter is used to restart the current playing song.
+    """
     group_call = player.telegram.group_call
 
     await m.delete()
