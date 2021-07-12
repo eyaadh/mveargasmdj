@@ -104,6 +104,8 @@ async def start_player():
         play_on_repeat=False
     )
 
+    player.telegram.group_call = group_call
+
     await group_call.start(player.telegram.voice_chat)
     await change_voice_chat_title(audio_file_details['title'])
     logging.info(
