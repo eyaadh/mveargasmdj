@@ -9,14 +9,16 @@ from player.telegram.audio_handler import prepare_audio_files, change_voice_chat
 
 
 async def vc_admins_filter_func(_, c: Client, m: Message):
-    member_details = await c.get_chat_member(m.chat.id, m.from_user.id)
+    member_details = await c.get_chat_member(
+        player.telegram.voice_chat, m.from_user.id)
     return member_details.can_manage_voice_chats
 
 vc_admins_filter = filters.create(vc_admins_filter_func)
 
 
 @Client.on_message(vc_admins_filter & 
-    filters.command("vnext", prefixes="!") & filters.chat(player.telegram.voice_chat))
+                   filters.command("vnext", prefixes="!") & 
+                   (filters.chat(player.telegram.voice_chat) | filters.private))
 async def next_song_handler(_, m: Message):
     """
     :what it does:
@@ -46,7 +48,8 @@ async def next_song_handler(_, m: Message):
 
 
 @Client.on_message(vc_admins_filter & 
-    filters.command("vpause", prefixes="!") & filters.chat(player.telegram.voice_chat))
+                   filters.command("vpause", prefixes="!") & 
+                   (filters.chat(player.telegram.voice_chat) | filters.private))
 async def pause_song_handler(_, m: Message):
     """
     :what it does:
@@ -61,7 +64,8 @@ async def pause_song_handler(_, m: Message):
 
 
 @Client.on_message(vc_admins_filter & 
-    filters.command("vresume", prefixes="!") & filters.chat(player.telegram.voice_chat))
+                   filters.command("vresume", prefixes="!") & 
+                   (filters.chat(player.telegram.voice_chat) | filters.private))
 async def resume_song_handler(_, m: Message):
     """
     :what it does:
@@ -75,8 +79,9 @@ async def resume_song_handler(_, m: Message):
     group_call.resume_playout()
 
 
-@Client.on_message(vc_admins_filter &
-    filters.command("vrestart", prefixes="!") & filters.chat(player.telegram.voice_chat))
+@Client.on_message(vc_admins_filter & 
+                   filters.command("vrestart", prefixes="!") & 
+                   (filters.chat(player.telegram.voice_chat) | filters.private))
 async def restart_song_handler(_, m: Message):
     """
     :what it does:
